@@ -130,21 +130,17 @@ def set_car_speed(display):
 
     return car_speed
 
-def draw_car(display, x, y):
-    display.blit(car_scaled, (x, y))
+def draw_entity(display, image, rect):
+    display.blit(image, rect)
 
 def rotate(image, x, y):
     global angle
     # Rotate the original image without modifying it.
     new_image = pygame.transform.rotate(image, angle)
     angle += 3
-    rect = pygame.Rect(x, y, star_scaled.get_width(), star_scaled.get_height())
+    rect = pygame.Rect(x, y, image.get_width(), image.get_height())
     # Get a new rect with the center of the old rect.
-    rect = new_image.get_rect(center=rect.center)
-    return new_image, rect
-
-def draw_enemy(display, image, rect):
-    display.blit(image, rect)
+    return new_image, new_image.get_rect(center=rect.center)
 
 def check_collision():
     if (car_x < enemy_x + enemy_width and car_x + car_width > enemy_x and
@@ -237,11 +233,10 @@ def game_loop(display):
             stripe_offset += stripe_spacing
 
         # Draw the car
-        draw_car(display, car_x, car_y)
+        draw_entity(display, car_scaled, pygame.Rect(car_x, car_y, car_width, car_height))
 
         # Draw the enemy
-        img, rect = rotate(star_scaled, enemy_x, enemy_y)
-        draw_enemy(display, img, rect)
+        draw_entity(display, *rotate(star_scaled, enemy_x, enemy_y))
 
         pygame.display.update()
         clock.tick(120)  # 120 FPS
