@@ -44,12 +44,12 @@ enemy_height = star_scaled.get_height()
 clock = pygame.time.Clock()
 
 # Generate initial enemy position
-def generate_enemy():
+def generate_enemy() -> tuple[int, int]:
     enemy_x = random.randint(road_x, road_x + road_width - enemy_width)
     enemy_y = -enemy_height * 2
     return enemy_x, enemy_y
 
-def initialize(display):
+def initialize(display) -> None:
     global car_x, car_y, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, score
     enemy_speed = 4
     car_x = display.get_width() // 2 - car_width // 2
@@ -59,7 +59,7 @@ def initialize(display):
     enemy_x, enemy_y = generate_enemy()
     score = 0
 
-def show_main_menu(display):
+def show_main_menu(display) -> None:
     global car_speed, enemy_x, enemy_y, road_height, road_width, road_x, road_y, car_scaled, car_x, car_y, car_width, car_height
     car_speed = 3
     while True:
@@ -94,9 +94,16 @@ def show_main_menu(display):
         options_text_rect = options_text.get_rect(center=(center_x, center_y + font_size))
         display.blit(options_text, options_text_rect)
 
+        # Draw high score
+        leaderboard = load_leaderboard()
+        highscore = max(leaderboard) if leaderboard else 0
+        highscore_text = font.render(f"High Score: {str(highscore)}", True, black)
+        highscore_text_rect = highscore_text.get_rect(center=(center_x, center_y - font_size))
+        display.blit(highscore_text, highscore_text_rect)
+
         pygame.display.update()
 
-def set_car_speed(display):
+def set_car_speed(display) -> int:
     global car_speed
     input_box = pygame.Rect(display.get_width() // 2 - 50, display.get_height() // 2 + 100, 100, 32)
     input_text = ""
@@ -137,7 +144,7 @@ def set_car_speed(display):
 def draw_entity(display, image, rect):
     display.blit(image, rect)
 
-def rotate(image, x, y):
+def rotate(image, x, y) -> tuple[pygame.Surface, pygame.Rect]:
     global angle
     # Rotate the original image without modifying it.
     new_image = pygame.transform.rotate(image, angle)
@@ -146,17 +153,17 @@ def rotate(image, x, y):
     # Get a new rect with the center of the old rect.
     return new_image, new_image.get_rect(center=rect.center)
 
-def check_collision():
+def check_collision() -> bool:
     if (car_x < enemy_x + enemy_width and car_x + car_width > enemy_x and
             car_y < enemy_y + enemy_height and car_y + car_height > enemy_y):
         return True
     return False
 
-def update_score(display, score):
+def update_score(display, score) -> None:
     score_text = font.render("Score: " + str(score), True, black)
     display.blit(score_text, (10, 10))
 
-def game_over(display):
+def game_over(display) -> None:
     global car_speed, score
     car_speed = 3
     leaderboard = load_leaderboard()
@@ -168,7 +175,7 @@ def game_over(display):
     initialize(display)
     show_main_menu(display)
 
-def load_leaderboard():
+def load_leaderboard() -> list[int]:
     try:
         with open("leaderboard.txt", "r") as file:
             leaderboard = [int(line.strip()) for line in file]
@@ -176,12 +183,12 @@ def load_leaderboard():
         leaderboard = []
     return leaderboard
 
-def save_leaderboard(leaderboard):
+def save_leaderboard(leaderboard) -> None:
     with open("leaderboard.txt", "w") as file:
         for score in leaderboard:
             file.write(str(score) + "\n")
 
-def display_leaderboard(display):
+def display_leaderboard(display) -> None:
     leaderboard = load_leaderboard()
     display.fill(white)
     font = pygame.font.Font(None, 36)
@@ -195,7 +202,7 @@ def display_leaderboard(display):
 
     pygame.display.update()
 
-def game_loop(display):
+def game_loop(display) -> None:
     global car_x, car_y, car_speed, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, car_width, car_height, car, angle, score
     game_exit = False
     score = 0
