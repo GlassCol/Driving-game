@@ -15,6 +15,9 @@ white = (255, 255, 255)
 gray = (128, 128, 128)
 yellow = (255, 255, 0)
 
+# Set up font
+font = pygame.font.Font(None, 36)
+
 road_y = 0
 road_width = 300
 
@@ -47,13 +50,14 @@ def generate_enemy():
     return enemy_x, enemy_y
 
 def initialize(display):
-    global car_x, car_y, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height
+    global car_x, car_y, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, score
     enemy_speed = 4
     car_x = display.get_width() // 2 - car_width // 2
     car_y = display.get_height() - car_height - 10
     road_x = display.get_width() // 2 - road_width // 2
     road_height = display.get_height()
     enemy_x, enemy_y = generate_enemy()
+    score = 0
 
 def show_main_menu(display):
     global car_speed, enemy_x, enemy_y, road_height, road_width, road_x, road_y, car_scaled, car_x, car_y, car_width, car_height
@@ -152,15 +156,53 @@ def check_collision():
         return True
     return False
 
+def update_score(display, score):
+    score_text = font.render("Score: " + str(score), True, black)
+    display.blit(score_text, (10, 10))
+
 def game_over(display):
-    global car_speed
+    global car_speed, score
     car_speed = 3
+    leaderboard = load_leaderboard()
+    leaderboard.append(score)
+    leaderboard.sort(reverse=True)
+    leaderboard = leaderboard[:5]  # Keep only the top 5 scores
+    save_leaderboard(leaderboard)
+    score = 0
     initialize(display)
     show_main_menu(display)
 
+def load_leaderboard():
+    try:
+        with open("leaderboard.txt", "r") as file:
+            leaderboard = [int(line.strip()) for line in file]
+    except FileNotFoundError:
+        leaderboard = []
+    return leaderboard
+
+def save_leaderboard(leaderboard):
+    with open("leaderboard.txt", "w") as file:
+        for score in leaderboard:
+            file.write(str(score) + "\n")
+
+def display_leaderboard(display):
+    leaderboard = load_leaderboard()
+    display.fill(white)
+    font = pygame.font.Font(None, 36)
+    title_text = font.render("Leaderboard", True, black)
+    display.blit(title_text, (display.get_width() // 2 - title_text.get_width() // 2, 50))
+
+    font = pygame.font.Font(None, 24)
+    for i, score in enumerate(leaderboard):
+        score_text = font.render(str(i+1) + ". " + str(score), True, black)
+        display.blit(score_text, (display.get_width() // 2 - score_text.get_width() // 2, 100 + i*30))
+
+    pygame.display.update()
+
 def game_loop(display):
-    global car_x, car_y, car_speed, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, car_width, car_height, car, angle
+    global car_x, car_y, car_speed, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, car_width, car_height, car, angle, score
     game_exit = False
+    score = 0
 
     # Dashed stripe variables
     stripe_width = 10
@@ -222,6 +264,7 @@ def game_loop(display):
             enemy_y = -enemy_height
             enemy_speed += .5
             car_speed += .3
+            score += 1
 
         # Update the display
         display.fill(white)
@@ -240,10 +283,14 @@ def game_loop(display):
         draw_car(display, car_x, car_y)
 
         # Draw the enemy
-        img, rect = rotate(star_scaled, enemy_x, enemy_y)
-        draw_enemy(display, img, rect)
+        rotated_enemy, enemy_rect = rotate(star_scaled, enemy_x, enemy_y)
+        draw_enemy(display, rotated_enemy, enemy_rect)
+
+        # Update and display score
+        update_score(display, score)
 
         pygame.display.update()
-        clock.tick(120)  # 120 FPS
+        clock.tick(60)
 
+# Start the game
 show_main_menu(display)
