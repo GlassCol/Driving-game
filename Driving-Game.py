@@ -15,10 +15,18 @@ white = (255, 255, 255)
 gray = (128, 128, 128)
 yellow = (255, 255, 0)
 
+road_y = 0
+road_width = 300
+
 # Load car image
 car = pygame.image.load("car.png")
 car_aspect_ratio = car.get_height() / car.get_width()
 car_scaling_factor = 0.6  # Adjust this value to scale down the car height
+# Limit car size based on road width
+car_width = min(road_width // 3, car.get_width() * car_scaling_factor)
+car_height = car_width * car_aspect_ratio
+# Scale the car image to fit within the maximum width and height
+car_scaled = pygame.transform.scale(car, (car_width, car_height))
 
 # Obstacles
 star = pygame.image.load("star.png")
@@ -29,8 +37,8 @@ angle = 0
 # Set up enemy variables
 enemy_width = star_scaled.get_width()
 enemy_height = star_scaled.get_height()
-enemy_speed = 4
-car_speed = 2  # Initial speed
+
+clock = pygame.time.Clock()
 
 # Generate initial enemy position
 def generate_enemy():
@@ -38,11 +46,18 @@ def generate_enemy():
     enemy_y = -enemy_height * 2
     return enemy_x, enemy_y
 
-clock = pygame.time.Clock()
+def initialize(display):
+    global car_x, car_y, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height
+    enemy_speed = 4
+    car_x = display.get_width() // 2 - car_width // 2
+    car_y = display.get_height() - car_height - 10
+    road_x = display.get_width() // 2 - road_width // 2
+    road_height = display.get_height()
+    enemy_x, enemy_y = generate_enemy()
 
 def show_main_menu(display):
     global car_speed, enemy_x, enemy_y, road_height, road_width, road_x, road_y, car_scaled, car_x, car_y, car_width, car_height
-
+    car_speed = 3
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -50,22 +65,8 @@ def show_main_menu(display):
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                    # Set up road variables
-                    road_width = 300
-                    road_x = display.get_width() // 2 - road_width // 2
-                    road_y = 0
-                    road_height = display.get_height()
-                    enemy_x, enemy_y = generate_enemy()
-
-                    # Limit car size based on road width
-                    car_width = min(road_width // 3, car.get_width() * car_scaling_factor)
-                    car_height = car_width * car_aspect_ratio
-
-                    # Scale the car image to fit within the maximum width and height
-                    car_scaled = pygame.transform.scale(car, (car_width, car_height))
-                    car_x = display.get_width() // 2 - car_width // 2
-                    car_y = display.get_height() - car_height - 10
-                    return
+                    initialize(display)
+                    game_loop(display)
                 elif event.key == pygame.K_o:
                     car_speed = set_car_speed(display)
 
@@ -90,7 +91,6 @@ def show_main_menu(display):
         display.blit(options_text, options_text_rect)
 
         pygame.display.update()
-        clock.tick(60)
 
 def set_car_speed(display):
     global car_speed
@@ -127,7 +127,6 @@ def set_car_speed(display):
         display.blit(text_surface, (input_box.x + 5, input_box.y + 5))
 
         pygame.display.update()
-        clock.tick(60)
 
     return car_speed
 
@@ -153,14 +152,10 @@ def check_collision():
         return True
     return False
 
-def game_over():
-    global car_x, car_y, enemy_x, enemy_y, enemy_speed, road_x, road_y
-    car_x = display.get_width() // 2 - car_width // 2
-    car_y = display.get_height() - car_height - 10
-    enemy_x, enemy_y = generate_enemy()
-    enemy_speed = 3
-    road_x = display.get_width() // 2 - road_width // 2
-    road_y = 0
+def game_over(display):
+    global car_speed
+    car_speed = 3
+    initialize(display)
     show_main_menu(display)
 
 def game_loop(display):
@@ -184,7 +179,6 @@ def game_loop(display):
             elif event.type == pygame.VIDEORESIZE:
                 display = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
                 road_x = display.get_width() // 2 - road_width // 2
-                road_y = 0
                 road_height = display.get_height()
 
         # Handle car movement
@@ -196,7 +190,7 @@ def game_loop(display):
 
         # Check collision
         if check_collision():
-            game_over()
+            game_over(display)
 
         # Update enemy position
         enemy_y += enemy_speed
@@ -214,7 +208,6 @@ def game_loop(display):
         road_x = display.get_width() // 2 - road_width // 2
 
         # Calculate road_y and road_height based on screen height
-        road_y = 0
         road_height = display.get_height()
 
         # Limit car_x within the road
@@ -251,8 +244,6 @@ def game_loop(display):
         draw_enemy(display, img, rect)
 
         pygame.display.update()
-        clock.tick(120)  # 60 FPS
-
+        clock.tick(120)  # 120 FPS
 
 show_main_menu(display)
-game_loop(display)
