@@ -1,3 +1,4 @@
+import time
 import pygame
 import sys
 import random
@@ -8,6 +9,8 @@ pygame.init()
 # Set up the display
 display = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
 pygame.display.set_caption("Driving Simulator")
+
+framerate = 60
 
 # Set up colors
 black = (0, 0, 0)
@@ -71,8 +74,12 @@ def show_main_menu(display) -> None:
                 if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                     initialize(display)
                     game_loop(display)
-                elif event.key == pygame.K_o:
+                elif event.key == pygame.K_s:
                     car_speed = set_car_speed(display)
+                elif event.key == pygame.K_f:
+                    change_framerate()
+                elif event.key == pygame.K_ESCAPE:
+                    quit()
 
         display.fill(white)
 
@@ -83,25 +90,51 @@ def show_main_menu(display) -> None:
         # Calculate font size based on display height
         font_size = display.get_height() // 10
         font = pygame.font.Font(None, font_size)
+        fps_font = pygame.font.Font(None, font_size // 2)
 
         # Draw menu text
         text = font.render("Press Enter to Start", True, black)
-        text_rect = text.get_rect(center=(center_x, center_y))
+        text_rect = text.get_rect(center=(center_x, center_y - font_size))
         display.blit(text, text_rect)
 
         # Draw options text
-        options_text = font.render("Press O to Set Car Speed", True, black)
-        options_text_rect = options_text.get_rect(center=(center_x, center_y + font_size))
+        options_text = font.render("Press S to Set Car Speed", True, black)
+        options_text_rect = options_text.get_rect(center=(center_x, center_y))
         display.blit(options_text, options_text_rect)
+
+        # Draw framerate text
+        framerate_text = font.render("Press F to change framerate", True, black)
+        framerate_text_rect = framerate_text.get_rect(center=(center_x, center_y + font_size))
+        display.blit(framerate_text, framerate_text_rect)
+        framerate_text = fps_font.render(f"FPS: {framerate}", True, black)
+        display.blit(framerate_text, (5, 5))
+
+        # Draw exit text
+        text = font.render("Press Escape to quit", True, black)
+        text_rect = text.get_rect(center=(center_x, center_y + font_size * 2))
+        display.blit(text, text_rect)
 
         # Draw high score
         leaderboard = load_leaderboard()
         highscore = max(leaderboard) if leaderboard else 0
         highscore_text = font.render(f"High Score: {str(highscore)}", True, black)
-        highscore_text_rect = highscore_text.get_rect(center=(center_x, center_y - font_size))
+        highscore_text_rect = highscore_text.get_rect(center=(center_x, center_y - font_size * 2))
         display.blit(highscore_text, highscore_text_rect)
 
         pygame.display.update()
+
+def change_framerate() -> None:
+    global framerate
+    if framerate == 30:
+        framerate = 60
+    elif framerate == 60:
+        framerate = 90
+    elif framerate == 90:
+        framerate = 120
+    elif framerate == 120:
+        framerate = 144
+    elif framerate == 144:
+        framerate = 30
 
 def set_car_speed(display) -> int:
     global car_speed
@@ -144,11 +177,9 @@ def set_car_speed(display) -> int:
 def draw_entity(display, image, rect):
     display.blit(image, rect)
 
-def rotate(image, x, y) -> tuple[pygame.Surface, pygame.Rect]:
-    global angle
+def rotate(image, x, y, angle) -> tuple[pygame.Surface, pygame.Rect]:
     # Rotate the original image without modifying it.
     new_image = pygame.transform.rotate(image, angle)
-    angle += 3
     rect = pygame.Rect(x, y, image.get_width(), image.get_height())
     # Get a new rect with the center of the old rect.
     return new_image, new_image.get_rect(center=rect.center)
@@ -204,7 +235,6 @@ def display_leaderboard(display) -> None:
 
 def game_loop(display) -> None:
     global car_x, car_y, car_speed, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, car_width, car_height, car, angle, score
-    game_exit = False
     score = 0
 
     # Dashed stripe variables
@@ -212,8 +242,13 @@ def game_loop(display) -> None:
     stripe_height = 40
     stripe_spacing = 80
     stripe_y = 0
+    last_time = time.time()
 
-    while not game_exit:
+    while True:
+        dt = time.time() - last_time
+        dt *= 60
+        last_time = time.time()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -229,19 +264,19 @@ def game_loop(display) -> None:
         # Handle car movement
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
-            car_x -= car_speed
+            car_x -= dt * car_speed
         if keys[pygame.K_RIGHT]:
-            car_x += car_speed
+            car_x += dt * car_speed
 
         # Check collision
         if check_collision():
             game_over(display)
 
         # Update enemy position
-        enemy_y += enemy_speed
+        enemy_y += dt * enemy_speed
 
         # Update stripe position
-        stripe_y += enemy_speed - 2  # Move the dashed line downwards
+        stripe_y += dt * (enemy_speed - 2)  # Move the dashed line downwards
 
         # Reset stripe position once it reaches the bottom of the display
         if stripe_y > stripe_spacing:
@@ -286,13 +321,14 @@ def game_loop(display) -> None:
         draw_entity(display, car_scaled, pygame.Rect(car_x, car_y, car_width, car_height))
 
         # Draw the enemy
-        draw_entity(display, *rotate(star_scaled, enemy_x, enemy_y))
+        draw_entity(display, *rotate(star_scaled, enemy_x, enemy_y, angle))
+        angle += 5 * dt
 
         # Update and display score
         update_score(display, score)
 
         pygame.display.update()
-        clock.tick(60)
+        clock.tick(framerate)
 
 # Start the game
 show_main_menu(display)
