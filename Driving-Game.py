@@ -2,6 +2,7 @@ import time
 import pygame
 import sys
 import random
+import math
 
 # Initialize Pygame
 pygame.init()
@@ -45,6 +46,67 @@ enemy_width = star_scaled.get_width()
 enemy_height = star_scaled.get_height()
 
 clock = pygame.time.Clock()
+
+# Draw the speedometer
+def draw_speedometer(display, displayed_speed):
+    speedometer_width = 40
+    speedometer_height = 200
+    label_font_size = 20
+
+    # Calculate the x-coordinate of the speedometer
+    speedometer_x = display.get_width() * 3 / 4 - speedometer_width / 2
+
+    # Calculate the y-coordinate of the speedometer
+    speedometer_y = display.get_height() / 2 - speedometer_height / 2
+
+    # Calculate the percentage of the car's speed relative to its maximum speed
+    max_speed = 160  # Maximum speed in mph
+
+    # Calculate the speed percentage to adjust the speedometer bar height
+    speed_percentage = min(displayed_speed / max_speed, 1.0)
+
+    # Calculate the height of the speedometer bar based on the speed percentage
+    speedometer_bar_height = int(speedometer_height * speed_percentage)
+
+    # Draw the background of the speedometer
+    pygame.draw.rect(display, white, (speedometer_x, speedometer_y, speedometer_width, speedometer_height))
+
+    # Draw the speedometer bar
+    pygame.draw.rect(
+        display,
+        black,
+        (speedometer_x, speedometer_y + speedometer_height - speedometer_bar_height, speedometer_width, speedometer_bar_height),
+    )
+
+    # Draw the tick marks and labels
+    tick_length = 8
+    label_font = pygame.font.Font(None, label_font_size)
+
+    for i in range(10):
+        # Calculate the y-coordinate of the tick mark
+        tick_y = speedometer_y + speedometer_height - (i / 10) * speedometer_height
+
+        # Draw the tick mark
+        pygame.draw.line(display, black, (speedometer_x, tick_y), (speedometer_x + tick_length, tick_y))
+
+        # Calculate the value of the speed label
+        label_value = i * 20
+
+        # Draw the speed label
+        label_text = label_font.render(str(label_value), True, black)
+        label_text_height = label_text.get_height()
+        display.blit(label_text, (speedometer_x - 5 - label_text.get_width(), tick_y - label_text_height // 2))
+
+    # Draw the current speed label
+    current_speed_label = label_font.render(str(int(displayed_speed)) + " MPH", True, black)
+    display.blit(current_speed_label, (speedometer_x + speedometer_width + 5, speedometer_y + speedometer_height - current_speed_label.get_height()))
+
+    # Draw the dash at the top of the speedometer
+    dash_width = 10
+    dash_height = 2
+    dash_x = speedometer_x + speedometer_width / 2 - dash_width / 2
+    dash_y = speedometer_y + speedometer_height - speedometer_bar_height - dash_height
+    pygame.draw.rect(display, black, (dash_x, dash_y, dash_width, dash_height))
 
 # Generate initial enemy position
 def generate_enemy() -> tuple[int, int]:
@@ -236,7 +298,7 @@ def display_leaderboard(display) -> None:
 def game_loop(display) -> None:
     global car_x, car_y, car_speed, enemy_x, enemy_y, enemy_speed, road_x, road_y, road_height, car_width, car_height, car, angle, score
     score = 0
-
+    displayed_speed = 5
     # Dashed stripe variables
     stripe_width = 10
     stripe_height = 40
@@ -302,6 +364,7 @@ def game_loop(display) -> None:
             enemy_y = -enemy_height
             enemy_speed += .5
             car_speed += .3
+            displayed_speed = (displayed_speed * 1.05) + 1
             score += 1
 
         # Update the display
@@ -326,6 +389,9 @@ def game_loop(display) -> None:
 
         # Update and display score
         update_score(display, score)
+
+        # Draw the speedometer
+        draw_speedometer(display, displayed_speed)
 
         pygame.display.update()
         clock.tick(framerate)
