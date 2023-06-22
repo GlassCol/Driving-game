@@ -2,7 +2,6 @@ import time
 import pygame
 import sys
 import random
-import math
 
 # Initialize Pygame
 pygame.init()
@@ -18,9 +17,83 @@ black = (0, 0, 0)
 white = (255, 255, 255)
 gray = (128, 128, 128)
 yellow = (255, 255, 0)
+dark_yellow = (200, 200, 0)
+green = (45, 140, 90)
 
-# Set up font
-font = pygame.font.Font(None, 36)
+# Set up fonts
+title_font = pygame.font.Font(None, 80)
+button_font = pygame.font.Font(None, 36)
+
+# Define Button class
+class Button:
+    def __init__(self, text, position, font, action):
+        self.text = text
+        self.position = position
+        self.font = font
+        self.action = action
+        self.rect = pygame.Rect(position[0], position[1], 250, 50)
+        self.corner_radius = 10
+
+    def draw(self, display):
+        if self.rect.collidepoint(pygame.mouse.get_pos()):
+            pygame.draw.rect(display, dark_yellow, self.rect, border_radius=self.corner_radius)  # Fill the button with yellow color
+            pygame.draw.rect(display, dark_yellow, self.rect, width=2, border_radius=self.corner_radius)  # Draw the button outline
+        else:
+            pygame.draw.rect(display, yellow, self.rect, border_radius=self.corner_radius)  # Fill the button with yellow color
+            pygame.draw.rect(display, yellow, self.rect, width=2, border_radius=self.corner_radius)  # Draw the button outline
+
+        text_surface = self.font.render(self.text, True, black)
+        text_rect = text_surface.get_rect(center=self.rect.center)
+        display.blit(text_surface, text_rect)
+    
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.action()
+
+
+# Define action functions for buttons
+def start_game():
+    initialize(display)
+    game_loop(display)
+    
+def change_framerate():
+    change_framerate()
+    
+def quit_game():
+    pygame.quit()
+    sys.exit()
+
+# Calculate center positions based on display size
+center_x_percent = 0.5  # Adjust this value to change the horizontal centering position (0.0 - leftmost, 1.0 - rightmost)
+center_y_percent = 0.5  # Adjust this value to change the vertical centering position (0.0 - topmost, 1.0 - bottommost)
+center_x = int(display.get_width() * center_x_percent)
+center_y = int(display.get_height() * center_y_percent)
+
+
+
+# Create buttons
+start_button = Button("Start", (center_x - 125, center_y - 100), button_font, start_game)
+framerate_button = Button("Change Framerate", (center_x - 125, center_y - 40), button_font, change_framerate)
+quit_button = Button("Quit", (center_x - 125, center_y + 20), button_font, quit_game)
+
+def draw_buttons():
+    global start_button, speed_button,framerate_button, quit_button
+    # Calculate center positions based on display size
+    center_x_percent = 0.5  # Adjust this value to change the horizontal centering position (0.0 - leftmost, 1.0 - rightmost)
+    center_y_percent = 0.5  # Adjust this value to change the vertical centering position (0.0 - topmost, 1.0 - bottommost)
+    center_x = int(display.get_width() * center_x_percent)
+    center_y = int(display.get_height() * center_y_percent)
+
+    # ReCreate buttons
+    start_button = Button("Start", (center_x - 125, center_y - 100), button_font, start_game)
+    framerate_button = Button("Change Framerate", (center_x - 125, center_y - 40), button_font, change_framerate)
+    quit_button = Button("Quit", (center_x - 125, center_y + 20), button_font, quit_game)
+
+    # Draw buttons
+    start_button.draw(display)
+    framerate_button.draw(display)
+    quit_button.draw(display)
 
 road_y = 0
 road_width = 300
@@ -126,64 +199,51 @@ def initialize(display) -> None:
 
 def show_main_menu(display) -> None:
     global car_speed, enemy_x, enemy_y, road_height, road_width, road_x, road_y, car_scaled, car_x, car_y, car_width, car_height
+    center_x = display.get_width() // 2
+    center_y = display.get_height() // 2
+
     car_speed = 3
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                    initialize(display)
-                    game_loop(display)
-                elif event.key == pygame.K_s:
-                    car_speed = set_car_speed(display)
-                elif event.key == pygame.K_f:
-                    change_framerate()
-                elif event.key == pygame.K_ESCAPE:
-                    quit()
+            else:
+                start_button.handle_event(event)
+                framerate_button.handle_event(event)
+                quit_button.handle_event(event)
 
-        display.fill(white)
+
+        display.fill(gray)
 
         # Calculate center positions based on display size
         center_x = display.get_width() // 2
         center_y = display.get_height() // 2
 
-        # Calculate font size based on display height
-        font_size = display.get_height() // 10
-        font = pygame.font.Font(None, font_size)
-        fps_font = pygame.font.Font(None, font_size // 2)
+        # Define font sizes
+        title_font_size = display.get_height() // 10
+        menu_font_size = display.get_height() // 20
 
-        # Draw menu text
-        text = font.render("Press Enter to Start", True, black)
-        text_rect = text.get_rect(center=(center_x, center_y - font_size))
-        display.blit(text, text_rect)
+        # Set up fonts
+        title_font = pygame.font.Font("fonts/Roboto-Bold.ttf", title_font_size)
+        menu_font = pygame.font.Font("fonts/Roboto-Regular.ttf", menu_font_size)
 
-        # Draw options text
-        options_text = font.render("Press S to Set Car Speed", True, black)
-        options_text_rect = options_text.get_rect(center=(center_x, center_y))
-        display.blit(options_text, options_text_rect)
+        # Draw title
+        title_text = title_font.render("Driving Simulator", True, black)
+        title_text_rect = title_text.get_rect(center=(center_x, 100))
+        display.blit(title_text, title_text_rect)
 
-        # Draw framerate text
-        framerate_text = font.render("Press F to change framerate", True, black)
-        framerate_text_rect = framerate_text.get_rect(center=(center_x, center_y + font_size))
-        display.blit(framerate_text, framerate_text_rect)
-        framerate_text = fps_font.render(f"FPS: {framerate}", True, black)
-        display.blit(framerate_text, (5, 5))
-
-        # Draw exit text
-        text = font.render("Press Escape to quit", True, black)
-        text_rect = text.get_rect(center=(center_x, center_y + font_size * 2))
-        display.blit(text, text_rect)
+        draw_buttons()
 
         # Draw high score
         leaderboard = load_leaderboard()
         highscore = max(leaderboard) if leaderboard else 0
-        highscore_text = font.render(f"High Score: {str(highscore)}", True, black)
-        highscore_text_rect = highscore_text.get_rect(center=(center_x, center_y - font_size * 2))
+        highscore_text = menu_font.render(f"High Score: {str(highscore)}", True, black)
+        highscore_text_rect = highscore_text.get_rect(center=(center_x, center_y + menu_font_size * 8))
         display.blit(highscore_text, highscore_text_rect)
 
         pygame.display.update()
+
 
 def change_framerate() -> None:
     global framerate
@@ -197,44 +257,7 @@ def change_framerate() -> None:
         framerate = 144
     elif framerate == 144:
         framerate = 30
-
-def set_car_speed(display) -> int:
-    global car_speed
-    input_box = pygame.Rect(display.get_width() // 2 - 50, display.get_height() // 2 + 100, 100, 32)
-    input_text = ""
-    input_active = True
-
-    while input_active:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
-                    try:
-                        car_speed = int(input_text)
-                        input_active = False
-                    except ValueError:
-                        print("Invalid speed input. Using default speed.")
-                        input_text = ""
-                elif event.key == pygame.K_BACKSPACE:
-                    input_text = input_text[:-1]
-                else:
-                    input_text += event.unicode
-
-        display.fill(white)
-
-        # Draw input box
-        pygame.draw.rect(display, black, input_box, 2)
-
-        # Draw input text
-        font = pygame.font.Font(None, 24)
-        text_surface = font.render(input_text, True, black)
-        display.blit(text_surface, (input_box.x + 5, input_box.y + 5))
-
-        pygame.display.update()
-
-    return car_speed
+    print(framerate)
 
 def draw_entity(display, image, rect):
     display.blit(image, rect)
@@ -253,7 +276,7 @@ def check_collision() -> bool:
     return False
 
 def update_score(display, score) -> None:
-    score_text = font.render("Score: " + str(score), True, black)
+    score_text = title_font.render("Score: " + str(score), True, black)
     display.blit(score_text, (10, 10))
 
 def game_over(display) -> None:
@@ -315,6 +338,9 @@ def game_loop(display) -> None:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.VIDEORESIZE:
+                display = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                initialize(display)  # Recreate the buttons when the display is resized
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     show_main_menu(display)
@@ -366,9 +392,9 @@ def game_loop(display) -> None:
             car_speed += .3
             displayed_speed = (displayed_speed * 1.05) + 1
             score += 1
-
+ 
         # Update the display
-        display.fill(white)
+        display.fill(green)
 
         # Draw the road
         pygame.draw.rect(display, gray, (road_x, road_y, road_width, road_height))
